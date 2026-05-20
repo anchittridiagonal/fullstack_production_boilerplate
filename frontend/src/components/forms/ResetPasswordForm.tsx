@@ -1,0 +1,84 @@
+'use client';
+
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
+import { useAuth } from '@/hooks/useAuth';
+import { getErrorMessage } from '@/utils/helpers';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+
+const schema = z
+  .object({
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])/, {
+        message: 'Must contain uppercase, lowercase, number and special character',
+      }),
+    confirmPassword: z.string(),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
+
+type FormData = z.infer<typeof schema>;
+
+interface Props {
+  token: string;
+}
+
+export const ResetPasswordForm = ({ token }: Props) => {
+  const { resetPassword } = useAuth();
+  const [error, setError] = useState('');
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<FormData>({ resolver: zodResolver(schema) });
+
+  const onSubmit = async (data: FormData) => {
+    setError('');
+    try {
+      await resetPassword(token, data);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+      {error && (
+        <div className="rounded-lg bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-600 dark:text-red-400">
+          {error}
+        </div>
+      )}
+
+      <Input
+        label="New Password"
+        type="password"
+        autoComplete="new-password"
+        placeholder="••••••••"
+        {...register('password')}
+        error={errors.password?.message}
+        hint="Min. 8 chars with uppercase, lowercase, number & special character"
+      />
+      <Input
+        label="Confirm Password"
+        type="password"
+        autoComplete="new-password"
+        placeholder="••••••••"
+        {...register('confirmPassword')}
+        error={errors.confirmPassword?.message}
+      />
+
+      <Button type="submit" className="w-full" isLoading={isSubmitting}>
+        Reset Password
+      </Button>
+    </form>
+  );
+};
