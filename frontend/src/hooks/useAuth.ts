@@ -11,7 +11,21 @@ import {
   RegisterFormData,
   ForgotPasswordFormData,
   ResetPasswordFormData,
+  User,
 } from '@/types';
+
+// Middleware reads this cookie to check auth server-side.
+// Must stay in sync with Zustand localStorage state.
+const setAuthCookie = (user: User) => {
+  const value = encodeURIComponent(
+    JSON.stringify({ state: { isAuthenticated: true, user: { role: user.role } } }),
+  );
+  document.cookie = `auth-storage=${value}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+};
+
+const clearAuthCookie = () => {
+  document.cookie = 'auth-storage=; path=/; max-age=0';
+};
 
 export const useAuth = () => {
   const router = useRouter();
@@ -21,6 +35,7 @@ export const useAuth = () => {
     const res = await authService.login(data);
     const { user: userData, accessToken, refreshToken: rt } = res.data.data!;
     setAuth(userData, accessToken, rt);
+    setAuthCookie(userData);
     toast.success(`Welcome back, ${userData.name}!`);
     router.push(userData.role === 'admin' ? '/admin' : '/dashboard');
   };
@@ -29,6 +44,7 @@ export const useAuth = () => {
     const res = await authService.register(data);
     const { user: userData, accessToken, refreshToken: rt } = res.data.data!;
     setAuth(userData, accessToken, rt);
+    setAuthCookie(userData);
     toast.success('Account created! Welcome!');
     router.push('/dashboard');
   };
@@ -38,6 +54,7 @@ export const useAuth = () => {
       await authService.logout(refreshToken).catch(() => undefined);
     }
     storeLogout();
+    clearAuthCookie();
     toast.success('Logged out successfully');
     router.push('/login');
   };
