@@ -69,11 +69,11 @@ const userSchema = new Schema<IUser>(
   {
     timestamps: true,
     toJSON: {
-      transform(_doc, ret) {
-        delete ret.password;
-        delete ret.passwordResetToken;
-        delete ret.passwordResetExpires;
-        delete ret.__v;
+      transform(_doc, ret: Record<string, unknown>) {
+        delete ret['password'];
+        delete ret['passwordResetToken'];
+        delete ret['passwordResetExpires'];
+        delete ret['__v'];
         return ret;
       },
     },
@@ -81,7 +81,7 @@ const userSchema = new Schema<IUser>(
 );
 
 // ─── Indexes ─────────────────────────────────────────────────────────────────
-userSchema.index({ email: 1 });
+// email index is already created by unique:true on the field definition
 userSchema.index({ role: 1 });
 userSchema.index({ isActive: 1 });
 userSchema.index({ deletedAt: 1 });
